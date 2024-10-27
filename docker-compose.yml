@@ -1,0 +1,57 @@
+
+services:
+  app:
+    build:
+      context: .
+    image: supplio-app:latest
+    container_name: supplio-app
+    depends_on:
+      - db
+      - minio
+      - mailhog
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: postgres://postgres:password@db:5433/supplio_development # ローカル用に5433ポートを指定
+      MINIO_ENDPOINT: http://minio:19000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    command: ["bin/rails", "server", "-b", "0.0.0.0"]
+
+  db:
+    image: postgres:16
+    container_name: supplio-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: supplio_development
+    ports:
+      - "5433:5432" # ローカル環境で5433ポートを公開
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    container_name: supplio-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "19000:9000"
+    command: server /data
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: supplio-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  minio_data:
