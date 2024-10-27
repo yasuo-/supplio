@@ -2,17 +2,21 @@
 services:
   app:
     build:
-      context: .
+      context: .Docker.local
     image: supplio-app:latest
     container_name: supplio-app
+    user: "${UID}:${GID}"
     depends_on:
       - db
       - minio
       - mailhog
+    networks:
+      - supplio-external
+      - supplio-internal
     environment:
       RAILS_ENV: development
       DB_PORT: 5432
-      DATABASE_URL: postgres://postgres:password@db:5432/supplio_development # ローカル用に5433ポートを指定
+      DATABASE_URL: postgres://postgres:password@db:5432/supplio_development
       MINIO_ENDPOINT: http://minio:19000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -22,7 +26,6 @@ services:
       - .:/app
     command: >
       /bin/sh -c "bin/rails db:create db:migrate && bin/rails server -b 0.0.0.0"
-#    command: ["bin/rails", "server", "-b", "0.0.0.0"]
 
   db:
     image: postgres:16
@@ -32,9 +35,11 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: supplio_development
     ports:
-      - "5432:5432" # ローカル環境で5433ポートを公開
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data  
+    networks:
+      - supplio-internal
 
   minio:
     image: minio/minio
@@ -58,3 +63,8 @@ services:
 volumes:
   pgdata:
   minio_data:
+networks:
+  supplio-external:
+    external: true
+  supplio-internal:  # ここで supplio-internal ネットワークを定義
+    internal: true
